@@ -10,7 +10,9 @@ import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
+import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
 import java.awt.*;
@@ -76,7 +78,7 @@ public class PDFService {
                         entry.getDestination(), String.valueOf(entry.getWeight()), String.valueOf(entry.getTotal()));
                 y -= ROW_HEIGHT;
             }
-
+            addDigitalSignature(doc);
             cs.close();
             doc.save(out);
         } catch (IOException e) {
@@ -120,5 +122,29 @@ public class PDFService {
         cs.endText();
         return y - (size + 2);
     }
+
+    private void addDigitalSignature(PDDocument document) throws IOException {
+        ClassPathResource imgFile = new ClassPathResource("signature.png");
+        PDPage lastPage = document.getPage(document.getNumberOfPages() - 1);
+        PDImageXObject pdImage = PDImageXObject.createFromByteArray(document, imgFile.getInputStream().readAllBytes(), "signature");
+        PDPageContentStream contentStream = new PDPageContentStream(document, lastPage, PDPageContentStream.AppendMode.APPEND, true, true);
+
+        // You can adjust these X, Y and size values to fit your layout
+        float imageWidth = 100;
+        float imageHeight = 50;
+        float margin = 50;
+        float x = lastPage.getMediaBox().getWidth() - imageWidth - margin;
+        float y = margin;
+
+        contentStream.drawImage(pdImage, x, y, imageWidth, imageHeight);
+        contentStream.beginText();
+        contentStream.setFont(font, 10);
+        contentStream.newLineAtOffset(x, y - 12);
+        contentStream.showText("Authorized Signatory");
+        contentStream.endText();
+
+        contentStream.close();
+    }
+
 
 }
