@@ -1,4 +1,5 @@
 package com.sptraders.sptraders_billing.security;
+
 import com.sptraders.sptraders_billing.util.JwtRequestFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;

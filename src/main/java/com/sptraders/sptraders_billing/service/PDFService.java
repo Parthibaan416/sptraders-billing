@@ -18,7 +18,6 @@ import org.springframework.stereotype.Service;
 import java.awt.*;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
@@ -26,20 +25,16 @@ import java.util.List;
 @Service
 public class PDFService {
 
-    private CustomerEntryRepository customerEntryRepository;
-
-    @Autowired
-    public PDFService(CustomerEntryRepository theCustomerEntryRepository)
-    {
-        this.customerEntryRepository = theCustomerEntryRepository;
-    }
-
     private static final float MARGIN = 40;
     private static final float ROW_HEIGHT = 20;
     private static final float[] COL_WIDTHS = {30, 70, 120, 120, 70, 50};
-
-    PDType1Font font = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
-    PDType1Font fontBold = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
+    PDType1Font fontBold = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
+    PDType1Font font = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
+    private CustomerEntryRepository customerEntryRepository;
+    @Autowired
+    public PDFService(CustomerEntryRepository theCustomerEntryRepository) {
+        this.customerEntryRepository = theCustomerEntryRepository;
+    }
 
     public void generatePdf(OutputStream out, String customerName, Date from, Date to) {
         List<CustomerEntry> entries = customerEntryRepository.findByCustomerAndDateBetween(customerName, from, to);
@@ -58,8 +53,8 @@ public class PDFService {
 
             drawTableHeader(cs, y);
             y -= ROW_HEIGHT;
-
             int serial = 1;
+            double totalAmount = 0.0;
             for (CustomerEntry entry : entries) {
                 if (y < MARGIN + ROW_HEIGHT * 3) {
                     cs.close();
@@ -77,7 +72,17 @@ public class PDFService {
                 drawTableRow(cs, y, String.valueOf(serial++), ApplicationUtillity.dateFormat(entry.getDate()), entry.getAwbNo(),
                         entry.getDestination(), String.valueOf(entry.getWeight()), String.valueOf(entry.getTotal()));
                 y -= ROW_HEIGHT;
+                totalAmount = totalAmount + entry.getTotal();
             }
+            y -= 10;
+            cs.beginText();
+            cs.setFont(fontBold, 11);
+            String totalText = "TOTAL PRICE: Rs." + totalAmount;
+            float textWidth = fontBold.getStringWidth(totalText) / 1000 * 11;
+            float x = PDRectangle.A4.getWidth() - MARGIN - textWidth;
+            cs.newLineAtOffset(x, y);
+            cs.showText(totalText);
+            cs.endText();
             addDigitalSignature(doc);
             cs.close();
             doc.save(out);
@@ -124,7 +129,7 @@ public class PDFService {
     }
 
     private void addDigitalSignature(PDDocument document) throws IOException {
-        ClassPathResource imgFile = new ClassPathResource("signature.png");
+        ClassPathResource imgFile = new ClassPathResource("signature.jpg");
         PDPage lastPage = document.getPage(document.getNumberOfPages() - 1);
         PDImageXObject pdImage = PDImageXObject.createFromByteArray(document, imgFile.getInputStream().readAllBytes(), "signature");
         PDPageContentStream contentStream = new PDPageContentStream(document, lastPage, PDPageContentStream.AppendMode.APPEND, true, true);
